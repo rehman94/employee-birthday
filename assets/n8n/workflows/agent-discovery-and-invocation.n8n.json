@@ -1,0 +1,122 @@
+{
+    "name": "Agent Discovery and Invocation",
+    "description": "Triggered via a webhook (POST), this workflow lists all SAP agents available for the tenant, then invokes the Billing Posting Agent using the SAP Agent Node, and returns the full agent list plus the agent response to the caller.",
+    "nodes": [
+        {
+            "id": "sticky-agent-list",
+            "name": "Sticky Note — Agent List Config",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                440,
+                100
+            ],
+            "parameters": {
+                "content": "## Available Agents Configuration\nThis configuration is hardcoded — AVAILABLE_AGENTS reflects the tenant agent registry at workflow creation time (80+ agents across Billing, HR, Finance, Procurement, Supply Chain, CX, and more).\nUpdate this list if agents are added or removed from the tenant.",
+                "width": 380,
+                "height": 130
+            }
+        },
+        {
+            "id": "node-webhook",
+            "name": "Webhook Trigger",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                200,
+                300
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "agent-discovery-5b57ad95-d16a-44e6-81f7-363747228280",
+                "responseMode": "responseNode",
+                "options": {}
+            }
+        },
+        {
+            "id": "node-list-agents",
+            "name": "List Available Agents",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                440,
+                300
+            ],
+            "parameters": {
+                "jsCode": "// AVAILABLE_AGENTS — full tenant agent registry sourced from UMS at workflow creation time.\n// SELECTED_AGENT_INDEX: change this value (0-based) to invoke a different agent.\nconst SELECTED_AGENT_INDEX = 0;\n\nconst AVAILABLE_AGENTS = [\n  { ordId: 'sap.agtblgpostg:agent:billing-posting-agent:v1', name: 'Billing Posting Agent', description: 'Automates resolution of SAP S/4HANA Cloud billing document posting failures.' },\n  { ordId: 'sap.agtblganmly:agent:billing-anomaly-agent:v1', name: 'Billing Anomaly Agent', description: 'Detects tax code anomalies in SAP billing documents using machine learning.' },\n  { ordId: 'sap.agtblgcreat:agent:billing-creation-agent:v1', name: 'Billing Creation Agent', description: 'Automates SAP Quote-to-Cash billing creation process.' },\n  { ordId: 'sap.agteera:agent:error-explanation-resolution-agent:v1', name: 'Error Explanation and Resolution Agent', description: 'Diagnoses, explains, and helps resolve errors across SAP S/4HANA.' },\n  { ordId: 'sap.agtsfhrknw:agent:sf-hr-knowledge-assistant:v1', name: 'HR Knowledge Orchestrator', description: 'Automates HR assistance integrating research and policy documents.' },\n  { ordId: 'sap.agtblgadjst:agent:billing-adjustment-agent:v1', name: 'Billing Adjustment Agent', description: 'AI-powered assistant for managing billing documents in the Quote-to-Cash process.' },\n  { ordId: 'sap.agtblgasstn:agent:billing-assistant-agent:v1', name: 'Billing Orchestration Agent', description: 'Primary entry point to the Billing Assistant suite of agents.' },\n  { ordId: 'sap.agtnego:agent:sourcing-negotiation-agent:v1', name: 'Sourcing Negotiation Agent', description: 'Analyzes supplier bids and recommends optimal negotiation strategies.' },\n  { ordId: 'sap.agtsrcevent:agent:sourcing-event-agent:v1', name: 'RFx Builder Agent', description: 'Streamlines end-to-end creation of RFx sourcing events in SAP Ariba.' },\n  { ordId: 'sap.agtsftma:agent:sf-task-management-agent:v1', name: 'Onboarding Task Manager Agent', description: 'Provides real-time view of onboarding task status for new hires.' },\n  { ordId: 'sap.agtsfjam:agent:sf-job-arch-maintenance-agent:v1', name: 'Job Architecture Maintenance Agent', description: 'Helps HR administrators maintain role-skill mappings in SAP SuccessFactors.' },\n  { ordId: 'sap.agtskillgov:agent:skill-governance-agent:v1', name: 'Skill Governance Agent', description: 'Automates skill library quality management in SAP Talent Intelligence Hub.' },\n  { ordId: 'sap.agtlmscmpl:agent:lms-compliance-agent:v1', name: 'LMS Compliance Agent', description: 'Helps managers track team compliance and process learning approvals.' },\n  { ordId: 'sap.agtsflrnasg:agent:sf-learning-assignment-agent:v1', name: 'Learning Assignment Agent', description: 'Bulk training assignment operations in SAP SuccessFactors LMS.' },\n  { ordId: 'sap.agtsftca:agent:sf-task-creation-agent:v1', name: 'Onboarding Task Creator Agent', description: 'Creates and manages custom onboarding and offboarding tasks.' },\n  { ordId: 'sap.agtsflrnskl:agent:sf-learning-skills-agent:v1', name: 'Skills-Based Learning Agent', description: 'Helps managers identify skill gaps and assign relevant learning.' },\n  { ordId: 'sap.agtctass:agent:cash-tra-orchestrator:v1', name: 'Cash Treasury Assistant', description: 'Routes treasury queries to the Bank Relationship and Cash Positioning agents.' },\n  { ordId: 'sap.agtconsasst:agent:group-reporting-assistant:v1', name: 'Group Reporting Assistant', description: 'Orchestrates SAP Group Reporting workflows via natural language.' },\n  { ordId: 'sap.agtbarela:agent:bank-relationship-agent:v1', name: 'Bank Relationship Agent', description: 'Enables Corporate Treasurers to query and analyze banking relationships.' },\n  { ordId: 'sap.agtcpa:agent:cash-positioning-agent:v1', name: 'Cash Code Agent', description: 'Automates cash position daily work by identifying deficit and surplus bank accounts.' },\n  { ordId: 'sap.agtconerror:agent:gr-consolidation:v1', name: 'GR Consolidation Error Resolution Agent', description: 'Automates SAP Group Reporting consolidation workflows and error resolution.' },\n  { ordId: 'sap.agtsfpoa:agent:position-optimization-agent:v1', name: 'Position Optimization Agent', description: 'Assists HR administrators with position management in SAP SuccessFactors Employee Central.' },\n  { ordId: 'sap.agtsfcga:agent:sf-compensation-guidance-agent:v1', name: 'Compensation Guidance Agent', description: 'Helps managers make data-driven merit increase decisions.' },\n  { ordId: 'sap.agtsfedi:agent:sf-employee-data-integration:v1', name: 'SF Employee Data Integration', description: 'Diagnoses and resolves employee data replication problems between SAP systems.' },\n  { ordId: 'sap.agtsfjca:agent:job-change-agent:v1', name: 'Job Change Request Agent', description: 'Helps SuccessFactors managers complete Employee Central job-change writes.' },\n  { ordId: 'sap.agtblock:agent:bill-block-resol-agent:v1', name: 'Billing Block Resolution Agent', description: 'Automates analysis and resolution of billing blocks on SAP Sales Orders.' },\n  { ordId: 'sap.agtsires:agent:supply-issue-resolution-agent:v1', name: 'Supply Issue Resolution Agent', description: 'Identifies and remediates procurement bottlenecks in SAP S/4HANA.' },\n  { ordId: 'sap.agtpdrcpegn:agent:pd-recipe-formulation-agent:v1', name: 'Recipe Agent', description: 'Assists product-development users in SAP Integrated Product Development.' },\n  { ordId: 'sap.agtpdproddt:agent:pd-proddt:v1', name: 'Product Data Maintenance Agent', description: 'Manages product master data in SAP S/4HANA.' },\n  { ordId: 'sap.agtprdstruc:agent:pd-prd-struc-optmzr:v1', name: 'Pd Prd Struc Optmzr Agent', description: 'Automates analysis and optimization of product structure and Bill of Materials.' },\n  { ordId: 'sap.agtcrmgt:agent:pd-cr-management-agent:v1', name: 'CR Management Agent', description: 'Automates SAP PLM change record operations.' },\n  { ordId: 'sap.agtpdchgmgt:agent:pd-prd-chg-mgt-agent:v1', name: 'Production Change Management Agent', description: 'Orchestrates the full Change Record lifecycle for material replacement in S/4HANA.' },\n  { ordId: 'sap.agtctraut:agent:contract-authoring-agent:v1', name: 'Contract Authoring Agent', description: 'Automates contract drafting by analyzing sourcing events and recommending clauses.' },\n  { ordId: 'sap.agtctrcmp:agent:compliance-monitor-agent:v1', name: 'Compliance Monitor Agent', description: 'Automates end-to-end obligation lifecycle management.' },\n  { ordId: 'sap.agtctranl:agent:contract-analyzer-agent:v1', name: 'Contract Analyzer Agent', description: 'Automates contract creation, obligation extraction, and lifecycle management.' },\n  { ordId: 'sap.agtscmaoa:agent:scm-asset-operations-assistant:v1', name: 'Asset Operations Assistant', description: 'Intelligent orchestrator for Supply Chain Operations.' },\n  { ordId: 'sap.agtequipins:agent:s4-equipment-insight-agent:v1', name: 'S4 Equipment Insight Agent', description: 'Generates comprehensive equipment summaries.' },\n  { ordId: 'sap.agtmaintreq:agent:pcp-maintenance-notification:v1', name: 'Maintenance Request Initiation Agent', description: 'Creates maintenance notifications and orders in SAP S/4HANA.' },\n  { ordId: 'sap.agtopmntplg:agent:s4-operational-maint-planning:v1', name: 'Operational Maintenance Planning Agent', description: 'Automates creation and lifecycle transitions of SAP maintenance orders.' },\n  { ordId: 'sap.agtmntevplg:agent:s4-maintenance-event-planning:v1', name: 'Maintenance Event Planning Agent', description: 'Browses and creates event-based planning buckets in SAP S/4HANA.' },\n  { ordId: 'sap.agtmainttl:agent:s4-maintenance-tasklist-agent:v1', name: 'Maintenance Task List Management Agent', description: 'Manages SAP S/4HANA maintenance task lists.' },\n  { ordId: 'sap.agtmntjbdb:agent:maint-technician-debrief:v1', name: 'Maintenance Technician Debrief Agent', description: 'Guides field technicians through the post-maintenance debrief workflow.' },\n  { ordId: 'sap.agtibpiiaa:agent:inv-invest-alloc-agent:v1', name: 'IBP Inventory Investment Allocation Agent', description: 'Analyzes service-to-capital production frontiers using multi-echelon inventory optimization.' },\n  { ordId: 'sap.agtscmplast:agent:pla-assistant-agent:v1', name: 'Planning Assistant Agent', description: 'Helps users create structured plans and track project progress.' },\n  { ordId: 'sap.agtgoods:agent:return-goods-to-supplier-agent:v1', name: 'Return Goods To Supplier Agent', description: 'Automates identification of dead stock and end-to-end vendor return process.' },\n  { ordId: 'sap.agtdra:agent:dispute-resolution-agent:v1', name: 'Dispute Resolution Agent', description: 'Analyzes and resolves Accounts Receivable disputes.' },\n  { ordId: 'sap.agtrpc:agent:receivables-payables-clearing-agent:v1', name: 'Receivables Payables Clearing Agent', description: 'Automates AR and AP clearing in SAP S/4HANA.' },\n  { ordId: 'sap.agtreacan:agent:receivable-account-analysis:v1', name: 'Account Receivables Agent', description: 'Delivers comprehensive view of customer financial standing.' },\n  { ordId: 'sap.agtdcreat:agent:dispute-creation-agent:v1', name: 'Dispute Case Creation Agent', description: 'Automates creation and management of SAP FSCM dispute cases.' },\n  { ordId: 'sap.agtdunins:agent:dunning-insights-agent:v1', name: 'AR Dunning Insights Agent', description: 'Reviews customer dunning status and overdue line items.' },\n  { ordId: 'sap.agtcoacp:agent:collection-account-preparation:v1', name: 'Collection Account Preparation', description: 'AI-driven account preparation for collection specialists.' },\n  { ordId: 'sap.agtsubslc:agent:subscription-lifecycle-agent:v1', name: 'Subscription Lifecycle Agent', description: 'Automates SAP S/4HANA provider contract operations for finance teams.' },\n  { ordId: 'sap.agtcolins:agent:collection-insights-agent:v1', name: 'Collection Insights Agent', description: 'Provides contract account intelligence for SAP FI-CA.' },\n  { ordId: 'sap.agtinv:agent:conv-inv-exec-agent:v1', name: 'Convergent Invoice Execution Agent', description: 'Automates invoicing operations for SAP S/4HANA.' },\n  { ordId: 'sap.agtanbia:agent:analytical-business-insights-agent:v1', name: 'Analytical Business Insights Agent', description: 'Calculates and presents KPIs, financial metrics, and analytical insights.' },\n  { ordId: 'sap.agtacc:agent:aa-anomaly-detection-agent:v1', name: 'Asset Accounting Anomaly Detection Agent', description: 'Detects anomalies in SAP Asset Accounting using pre-defined and ad-hoc rules.' },\n  { ordId: 'sap.agtjficoan:agent:financial-consistency-analysis:v1', name: 'FI Consistency Agent', description: 'Automates financial document validation for SAP S/4HANA.' },\n  { ordId: 'sap.agtaccaa:agent:accounting-accruals-agent:v1', name: 'Accounting Accruals Agent', description: 'Automates the accruals lifecycle in SAP S/4HANA.' },\n  { ordId: 'sap.agtjea:agent:journal-entry-agent:v1', name: 'Journal Entry Agent', description: 'Automates journal entry lifecycle operations in SAP S/4HANA.' },\n  { ordId: 'sap.agtcloass:agent:financial-closing-assistant:v1', name: 'Financial Closing Assistant', description: 'Orchestrates multiple specialized AI agents to automate financial close activities.' },\n  { ordId: 'sap.agtleadenr:agent:cx-lead-enrichment-agent:v1', name: 'Lead Enrichment Agent', description: 'Enriches sales leads with additional data and insights in SAP Sales Cloud.' },\n  { ordId: 'sap.agtleadconv:agent:cx-lead-conversion-agent:v1', name: 'Lead Conversion Agent', description: 'Converts qualified leads into accounts, contacts, and opportunities.' },\n  { ordId: 'sap.agtsaleseg:agent:cx-sales-engagement-agent:v1', name: 'Sales Engagement Agent', description: 'Identifies and engages the most promising leads in SAP Sales Cloud.' },\n  { ordId: 'sap.agtleadqul:agent:cx-lead-qualification-agent:v1', name: 'Lead Qualification Agent', description: 'Qualifies and scores sales leads based on engagement signals.' },\n  { ordId: 'sap.agtleadrou:agent:cx-lead-routing-agent:v1', name: 'Lead Routing Agent', description: 'Routes incoming sales leads to the most appropriate representatives.' },\n  { ordId: 'sap.agtapass:agent:accounts-payable-assistant:v1', name: 'Accounts Payable Assistant', description: 'Automates daily accounts payable operations.' },\n  { ordId: 'sap.agtewmwrkl:agent:ewm-whse-wrkl-optm-agent:v1', name: 'Warehouse Workload Optimization Agent', description: 'Plans and forecasts warehouse resource allocation.' },\n  { ordId: 'sap.agtewmfxbn:agent:ewm-whse-fixed-bin-agent:v1', name: 'Warehouse Fixed Bin Maintenance Agent', description: 'Automates fixed bin assignment in SAP Extended Warehouse Management.' },\n  { ordId: 'sap.agtmatrsv:agent:s4-mmim-mat-rsv-proc:v1', name: 'Material Reservation Processing Agent', description: 'Manages material reservations in SAP S/4HANA.' },\n  { ordId: 'sap.agtbtchoptm:agent:lo-batch-optm-agent:v1', name: 'Batch Optimization Agent', description: 'Tracks batches nearing expiry and executes recommended actions.' },\n  { ordId: 'sap.agtsfpvr:agent:payroll-validation-rule-agent:v1', name: 'Payroll Validation Rule Agent', description: 'Creates and edits SAP Payroll Control Center validation rules.' },\n  { ordId: 'sap.agtsfpar:agent:payroll-alert-resolution-agent:v1', name: 'Payroll Alert Resolution Agent', description: 'Automates SAP Payroll Control Center alert analysis.' },\n  { ordId: 'sap.agtcaseorch:agent:cx-case-orchestrator-agent:v1', name: 'CX Case Management Orchestration Agent', description: 'Manages the full case lifecycle in SAP Service Cloud.' },\n  { ordId: 'sap.agtcaseactn:agent:cx-case-action-reco-agent:v1', name: 'CX Case Action Recommendation Agent', description: 'Analyzes customer service case context to determine optimal next actions.' },\n  { ordId: 'sap.agtcaseproc:agent:cx-case-processing-agent:v1', name: 'CX Case Processing Agent', description: 'Orchestrates end-to-end resolution of customer support cases.' },\n  { ordId: 'sap.agtcaseprep:agent:cx-case-preparation-agent:v1', name: 'CX Case Preparation Agent', description: 'Automates intelligent case preparation for SAP Service Cloud.' },\n  { ordId: 'sap.agtcxdealq:agent:deal-qualification-agent:v1', name: 'Deal Qualification Orchestrator Agent', description: 'Automates lead enrichment, qualification, routing, and conversion.' },\n  { ordId: 'sap.agtrdme:agent:reg-doc-mapping-explainr-agent:v1', name: 'Regulatory Mapping Explanation Agent', description: 'Explains eDocument field mappings to country-specific regulatory schemas.' },\n  { ordId: 'sap.agtlca:agent:legal-change-agent:v1', name: 'Legal Change Agent', description: 'Helps SAP customers navigate compliance landscapes across countries.' },\n  { ordId: 'sap.agtser:agent:einvoicing-submission-err-res:v1', name: 'Error Submission Resolution Agent', description: 'Resolves failed eDocument submissions in SAP DRC.' },\n  { ordId: 'sap.agtsraa:agent:statutory-report-analysis-agent:v1', name: 'Statutory Report Analysis Agent', description: 'Examines DRC statutory reporting data and detects tax outliers.' },\n  { ordId: 'sap.agtboe:agent:bill-of-exchange-agent:v1', name: 'Bill of Exchange Agent', description: 'Reduces manual effort for AR finance clerks in the S/4HANA BoE lifecycle.' },\n  { ordId: 'sap.agttcla:agent:tax-configuration-agent:v1', name: 'Tax Configuration Agent', description: 'Scans tax sources and detects master data changes for new tax condition records.' },\n  { ordId: 'sap.agtlea:agent:localization-extensibility:v1', name: 'Localization Extensibility Agent', description: 'Manages statutory report extensions for new legal changes.' },\n  { ordId: 'sap.agtctrren:agent:contract-renewal-agent:v1', name: 'Contract Renewal Agent', description: 'Automates contract renewal decisions by orchestrating supplier intelligence and risk assessment.' },\n  { ordId: 'sap.agtsftosvc:agent:sf-timeoff-service-agent:v1', name: 'Time Off Service Agent', description: 'Smart self-service time-off agent for employees and managers.' },\n  { ordId: 'sap.agtsftssvc:agent:sf-timesheet-service-agent:v1', name: 'Timesheet Service Agent', description: 'Helps employees view, fill, submit, and monitor timesheet periods.' },\n  { ordId: 'sap.agtsfpw:agent:sf-pending-workflow-agent:v1', name: 'Pending HR Workflow Agent', description: 'Accelerates workflow approvals and provides visibility into bottlenecks.' },\n  { ordId: 'sap.agtsfhrsa:agent:hr-service-assistant:v1', name: 'HR Services Assistant', description: 'Orchestrates a network of specialized HR sub-agents for employee inquiries.' },\n  { ordId: 'sap.agtsfpe:agent:sf-pay-explanation-agent:v1', name: 'Explain Pay Agent', description: 'Enables employees to interpret payroll outcomes from SAP SuccessFactors.' }\n];\n\nconst selectedAgent = AVAILABLE_AGENTS[SELECTED_AGENT_INDEX];\nconst userInput = $input.item.json.body?.input ?? 'Tell me about a recent billing posting failure and how you can help resolve it.';\n\nreturn [{ json: { agents: AVAILABLE_AGENTS, agentCount: AVAILABLE_AGENTS.length, selectedAgent, userInput } }];"
+            }
+        },
+        {
+            "id": "node-sap-agent",
+            "name": "Invoke Billing Posting Agent",
+            "type": "CUSTOM.sapAgent",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ],
+            "parameters": {
+                "agents": "[{\"ordId\":\"sap.agtblgpostg:agent:billing-posting-agent:v1\",\"name\":\"Billing Posting Agent\",\"description\":\"Automates resolution of SAP S/4HANA Cloud billing document posting failures.\"}]",
+                "agentName": "{\"ordId\":\"sap.agtblgpostg:agent:billing-posting-agent:v1\",\"name\":\"Billing Posting Agent\"}",
+                "input": "={{ $json.userInput }}",
+                "sessionId": "={{ $('Webhook Trigger').item.json.headers?.['x-session-id'] ?? $execution.id }}"
+            }
+        },
+        {
+            "id": "node-respond",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+                920,
+                300
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ availableAgents: $('List Available Agents').item.json.agents, agentCount: $('List Available Agents').item.json.agentCount, invokedAgent: $('List Available Agents').item.json.selectedAgent, agentResponse: $json }) }}"
+            }
+        }
+    ],
+    "connections": {
+        "Webhook Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "List Available Agents",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "List Available Agents": {
+            "main": [
+                [
+                    {
+                        "node": "Invoke Billing Posting Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Invoke Billing Posting Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "pinData": {},
+    "id": "mEPDyLT2tkht93wx"
+}

@@ -1,0 +1,16 @@
+apiVersion: asset.sap/v1
+kind: Asset
+
+metadata:
+  name: n8n
+  version: "1.0.0"
+
+type: n8n-workflow
+
+sourceRoot: "workflows"
+
+provides:
+  workflows:
+    - definitionFile: agent-discovery-and-invocation.n8n.json
+      name: agent-discovery-and-invocation
+      ordId: customer.build:apiResource:agent-discovery-4b5c6.agent-discovery-and-invocation:v1
